@@ -84,6 +84,9 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
     }
     self.locManager = [[[CLLocationManager alloc] init] autorelease];
     self.locManager.delegate = self;
+    self.locManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters;
+    self.locManager.distanceFilter = 10;
+    [self.locManager startUpdatingLocation];
     
     serialQueue = dispatch_queue_create("com.dustinrue.ControlPlane.CoreWLANEvidenceSource",
                                         DISPATCH_QUEUE_SERIAL);
