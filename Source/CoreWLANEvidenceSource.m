@@ -89,6 +89,9 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
         return;
     }
     
+    self.locManager = [[[CLLocationManager alloc] init] autorelease];
+    self.locManager.delegate = self;
+    
     // attempt to get the current
     if (![self getWiFiInterface]) {
         [self doStop];
@@ -124,6 +127,13 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
 }
 
 - (void)doStop {
+    
+    if (self.locManager) {
+        [self.locManager stopUpdatingLocation];
+        self.locManager.delegate = nil;
+        self.locManager = nil;
+    }
+    
     [[NSNotificationCenter defaultCenter] removeObserver:self
                                                     name:NSUserDefaultsDidChangeNotification
                                                   object:nil];
@@ -185,9 +195,15 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
         NSString *ssid = currentInterface.ssid, *bssid = currentInterface.bssid;
         DSLog(@"ssid=%@", ssid);
         DSLog(@"bssid=%@]", bssid);
-        if ((ssid == nil) || (bssid == nil)) {
+        if (ssid == nil){
             [self clearCollectedData];
-            DSLog(@"WiFi interface is active, but is not participating in a network yet (or network SSID is bad)");
+            DSLog(@"WiFi interface is active, but  network SSID is bad");
+            return;
+        }
+        if ((ssid != nil) && (bssid == nil)) {
+            [self clearCollectedData];
+            DSLog(@"WiFi interface is active, but is BSSID is nor available. Location permissions might not have been granted. Will request now.");
+            [self.locManager requestAlwaysAuthorization];
             return;
         }
 
@@ -376,10 +392,6 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
 }
 
 - (BOOL) getWiFiInterface {
-    self.locManager = [CLLocationManager new];
-    self.locManager.delegate = self;
-    [self.locManager requestAlwaysAuthorization];
-    
     
     NSArray *supportedInterfaces = [CWWiFiClient interfaceNames] ;
     
@@ -450,8 +462,10 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
 }
 
 - (void) locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
-    DSLog(@"Authorization status changed");
-    [self doUpdate];
+    DSLog(@"Location Authorization status changed %d", status);
+    if (status == kCLAuthorizationStatusAuthorizedAlways) {
+        [self doUpdate];
+    }
 }
 
 @end
