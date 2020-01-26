@@ -81,6 +81,8 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
     if (running) {
         return;
     }
+    self.locManager = [[[CLLocationManager alloc] init] autorelease];
+    self.locManager.delegate = self;
     
     serialQueue = dispatch_queue_create("com.dustinrue.ControlPlane.CoreWLANEvidenceSource",
                                         DISPATCH_QUEUE_SERIAL);
@@ -89,8 +91,6 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
         return;
     }
     
-    self.locManager = [[[CLLocationManager alloc] init] autorelease];
-    self.locManager.delegate = self;
     
     // attempt to get the current
     if (![self getWiFiInterface]) {
