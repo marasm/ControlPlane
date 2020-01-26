@@ -69,6 +69,7 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
     [_currentInterface release];
     [_interfaceBSDName release];
     [_interfaceData release];
+    [_locManager release];
 
     [super dealloc];
 }
