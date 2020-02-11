@@ -84,9 +84,6 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
     }
     self.locManager = [[[CLLocationManager alloc] init] autorelease];
     self.locManager.delegate = self;
-    self.locManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters;
-    self.locManager.distanceFilter = 10;
-    [self.locManager startUpdatingLocation];
     
     serialQueue = dispatch_queue_create("com.dustinrue.ControlPlane.CoreWLANEvidenceSource",
                                         DISPATCH_QUEUE_SERIAL);
@@ -133,7 +130,7 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
 - (void)doStop {
     
     if (self.locManager) {
-        [self.locManager stopUpdatingLocation];
+//        [self.locManager stopUpdatingLocation];
         self.locManager.delegate = nil;
         self.locManager = nil;
     }
@@ -204,10 +201,12 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
             DSLog(@"WiFi interface is active, but  network SSID is bad");
             return;
         }
-        if ((ssid != nil) && (bssid == nil)) {
-            [self clearCollectedData];
-            DSLog(@"WiFi interface is active, but is BSSID is nor available. Location permissions might not have been granted. Will request now.");
-            [self.locManager requestAlwaysAuthorization];
+        if (bssid == nil) {
+            DSLog(@"WiFi interface is active, but is BSSID is not available. Location permissions might not have been granted. Will request now.");
+            if ([CLLocationManager locationServicesEnabled])
+            {
+                [self.locManager requestAlwaysAuthorization];
+            }
             return;
         }
 
@@ -467,9 +466,14 @@ static void linkDataChanged(SCDynamicStoreRef store, CFArrayRef changedKeys, voi
 
 - (void) locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
     DSLog(@"Location Authorization status changed %d", status);
-    if (status == kCLAuthorizationStatusAuthorizedAlways) {
-        [self doUpdate];
-    }
+    [NSThread sleepForTimeInterval: 1];
+    [self getInterfaceStateInfo];
 }
+- (void) locationManager:(CLLocationManager *)manager didFailWithError:(NSError *)error{
+    DSLog(@"Location Manager error: %@", error );
+    [self getWiFiInterface];
+    [self getInterfaceStateInfo];
+}
+
 
 @end
